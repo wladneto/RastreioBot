@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from time import time
 from pymongo import MongoClient
 from telebot import types
+from telebot.types import LabeledPrice
 
 import configparser
 import logging
@@ -23,6 +24,7 @@ LOG_INFO_FILE = config['RASTREIOBOT']['text_log']
 LOG_ROUTINE_FILE = config['RASTREIOBOT']['routine_log']
 LOG_ALERTS_FILE = config['RASTREIOBOT']['alerts_log']
 PATREON = config['RASTREIOBOT']['patreon']
+provider_token = config['PAYMENTWALL']['live']
 
 logger_info = logging.getLogger('InfoLogger')
 logger_info.setLevel(logging.DEBUG)
@@ -37,6 +39,9 @@ db = client.rastreiobot
 markup_btn = types.ReplyKeyboardMarkup(resize_keyboard=True)
 markup_btn.row('/Pacotes','/Info','/Concluidos')
 markup_clean = types.ReplyKeyboardRemove(selective=False)
+
+prices5 = [LabeledPrice(label='Doação', amount=500)]
+prices10 = [LabeledPrice(label='Doação', amount=1000)]
 
 ## Check if package exists in DB
 def check_package(code):
@@ -226,6 +231,22 @@ def echo_all(message):
         bot.send_message(message.chat.id, user, parse_mode='HTML', reply_markup=markup_clean)
     else:
         bot.send_message(message.chat.id, group, parse_mode='HTML', reply_markup=markup_clean)
+
+@bot.message_handler(commands=['doar', 'Doar'])
+def echo_all(message):
+    bot.send_chat_action(message.chat.id, 'typing')
+    bot.send_invoice(message.chat.id, title='RastreioBot',
+        description='Doe R$5,00',
+        provider_token=provider_token, currency='brl', photo_url='0', photo_height=0,
+        photo_width=0, photo_size=0, is_flexible=False, prices=prices5,
+        start_parameter='rastreiobot',
+        invoice_payload='rastreiobotpayload')
+    bot.send_invoice(message.chat.id, title='RastreioBot',
+        description='Doe R$10,00',
+        provider_token=provider_token, currency='brl', photo_url='0', photo_height=0,
+        photo_width=0, photo_size=0, is_flexible=False, prices=prices10,
+        start_parameter='rastreiobot',
+        invoice_payload='rastreiobotpayload')
 
 @bot.message_handler(commands=['pacotes', 'Pacotes'])
 def echo_all(message):

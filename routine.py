@@ -32,8 +32,8 @@ db = client.rastreiobot
 
 multiple = sys.argv[1]
 print(multiple)
-def get_package(code):
-    stat = check_update(code)
+async def get_package(code, session):
+    stat = await check_update(code, session)
     if stat == 0:
         stat = 'Sistema dos Correios fora do ar.'
     elif stat == 1:
@@ -64,7 +64,89 @@ def check_system():
         logger_info.info(str(datetime.now()) + '\tCorreios indisponível')
         return False
 
-if __name__ == '__main__':
+async def rotina(elem, start, session):
+    try:
+        if elem['code'][5] != multiple:
+            continue
+        now = time()
+        timediff = int(now) - int(start)
+        if timediff > 800:
+            logger_info.info(str(datetime.now()) + '\t' + multiple + '\tRoutine too long')
+            break
+        code = elem['code']
+        time_dif = int(time() - float(elem['time']))
+        for user in elem['users']:
+            if user not in PATREON:
+                if time_dif < int_check:
+                    continue
+            else:
+                print(user)
+        try:
+            old_state = elem['stat'][len(elem['stat'])-1]
+            len_old_state = len(elem['stat'])
+        except:
+            len_old_state = 1
+        if 'objeto entregue ao' in old_state.lower():
+            continue
+        elif 'objeto apreendido por órgão de fiscalização' in old_state.lower():
+            continue
+        elif 'objeto devolvido' in old_state.lower():
+            continue
+        elif 'objeto roubado' in old_state.lower():
+            continue
+        stat = await get_package(code)
+        if stat == 0:
+            break
+        cursor2 = db.rastreiobot.find_one(
+        {
+            "code": code
+        })
+        try:
+            len_new_state = len(cursor2['stat'])
+        except:
+            len_new_state = 1
+        if len_old_state != len_new_state:
+            for user in elem['users']:
+                logger_info.info(str(datetime.now()) + '\t' + multiple + '\t'
+                    + str(code) + ' \t' + str(user) + ' \t' + str(sent) + '\t'
+                    + str(timediff) + ' ' + str(len_old_state) + ' '
+                    + str(len_new_state))
+                try:
+                    message = (str(u'\U0001F4EE') + '<b>' + code + '</b>\n')
+                    if elem[user] != code:
+                        message = message + elem[user] + '\n'
+                    message = (
+                        message + '\n'
+                        +  cursor2['stat'][len(cursor2['stat'])-1])
+                    if 'objeto entregue' in message.lower():
+                        message = (message + '\n\n'
+                        + str(u'\U00002B50')
+                        + '<a href="https://telegram.me/storebot?start=rastreiobot">'
+                        + 'Avalie o bot</a> - '
+                        + str(u'\U0001F4B5')
+                        + '<a href="http://grf.xyz/paypal">Colabore</a>')
+                    bot.send_message(str(user), message, parse_mode='HTML',
+                        disable_web_page_preview=True)
+                    sent = sent + 1
+                except Exception as e:
+                    logger_info.info(str(datetime.now())
+                         + '\tEXCEPT: ' + str(user) + ' ' + code + ' ' + str(e))
+                    # bot.send_message(str(user), message, parse_mode='HTML',
+                    #     disable_web_page_preview=True)
+                    # sent = sent + 1
+                    continue
+                #else:
+                #    logger_info.info(str(datetime.now())
+                #         + '\tELSE:\t' + str(user) + ' ' + code)
+                #    continue
+                #sleep(INTERVAL)
+    except Exception as e:
+        logger_info.info(str(datetime.now()) + '\t' + multiple + '\tEXCEPT: ' + str(e)
+            + '\t' + str(code) + ' \t' + str(user))
+        sys.exit()
+
+
+async def main():
     sleep(60*int(multiple))
     cursor1 = db.rastreiobot.find()
     start = time()
@@ -73,83 +155,12 @@ if __name__ == '__main__':
         pass
     else:
         sys.exit()
-    for elem in cursor1:
-        try:
-            if elem['code'][5] != multiple:
-                continue
-            now = time()
-            timediff = int(now) - int(start)
-            if timediff > 800:
-                logger_info.info(str(datetime.now()) + '\t' + multiple + '\tRoutine too long')
-                break
-            code = elem['code']
-            time_dif = int(time() - float(elem['time']))
-            for user in elem['users']:
-                if user not in PATREON:
-                    if time_dif < int_check:
-                        continue
-                else:
-                    print(user)
-            try:
-                old_state = elem['stat'][len(elem['stat'])-1]
-                len_old_state = len(elem['stat'])
-            except:
-                len_old_state = 1
-            if 'objeto entregue ao' in old_state.lower():
-                continue
-            elif 'objeto apreendido por órgão de fiscalização' in old_state.lower():
-                continue
-            elif 'objeto devolvido' in old_state.lower():
-                continue
-            elif 'objeto roubado' in old_state.lower():
-                continue
-            stat = get_package(code)
-            if stat == 0:
-                break
-            cursor2 = db.rastreiobot.find_one(
-            {
-                "code": code
-            })
-            try:
-                len_new_state = len(cursor2['stat'])
-            except:
-                len_new_state = 1
-            if len_old_state != len_new_state:
-                for user in elem['users']:
-                    logger_info.info(str(datetime.now()) + '\t' + multiple + '\t'
-                        + str(code) + ' \t' + str(user) + ' \t' + str(sent) + '\t'
-                        + str(timediff) + ' ' + str(len_old_state) + ' '
-                        + str(len_new_state))
-                    try:
-                        message = (str(u'\U0001F4EE') + '<b>' + code + '</b>\n')
-                        if elem[user] != code:
-                            message = message + elem[user] + '\n'
-                        message = (
-                            message + '\n'
-                            +  cursor2['stat'][len(cursor2['stat'])-1])
-                        if 'objeto entregue' in message.lower():
-                            message = (message + '\n\n'
-                            + str(u'\U00002B50')
-                            + '<a href="https://telegram.me/storebot?start=rastreiobot">'
-                            + 'Avalie o bot</a> - '
-                            + str(u'\U0001F4B5')
-                            + '<a href="http://grf.xyz/paypal">Colabore</a>')
-                        bot.send_message(str(user), message, parse_mode='HTML',
-                            disable_web_page_preview=True)
-                        sent = sent + 1
-                    except Exception as e:
-                        logger_info.info(str(datetime.now())
-                             + '\tEXCEPT: ' + str(user) + ' ' + code + ' ' + str(e))
-                        # bot.send_message(str(user), message, parse_mode='HTML',
-                        #     disable_web_page_preview=True)
-                        # sent = sent + 1
-                        continue
-                    #else:
-                    #    logger_info.info(str(datetime.now())
-                    #         + '\tELSE:\t' + str(user) + ' ' + code)
-                    #    continue
-                    #sleep(INTERVAL)
-        except Exception as e:
-            logger_info.info(str(datetime.now()) + '\t' + multiple + '\tEXCEPT: ' + str(e)
-                + '\t' + str(code) + ' \t' + str(user))
-            sys.exit()
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [rotina(elem, start, session) for elem in cursor1]
+        await asyncio.gather(tasks)
+
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

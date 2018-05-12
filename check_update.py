@@ -5,7 +5,7 @@ from misc import check_type
 import apicorreios as correios
 
 
-def check_update(code, max_retries=3):
+async def check_update(code, session, max_retries=3):
     print('check_update')
     api_type = check_type(code)
     # TODO: add suport to more api's
@@ -13,7 +13,7 @@ def check_update(code, max_retries=3):
         return status.TYPO
     stats = []
     try:
-        response = api_type.get(code, max_retries)
+        response = await api_type.get(code, session, max_retries)
         if response in status.types:
             print("resposta : " + str(response))
             return response

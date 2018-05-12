@@ -11,7 +11,7 @@ senha = config['CORREIOS']['senha']
 token = config['CORREIOS']['token']
 
 
-def get(code, retries):
+async def get(code, session, retries):
     print("correios")
     try:
         request_xml = '''
@@ -34,12 +34,13 @@ def get(code, retries):
         url = (
             'http://webservice.correios.com.br/service/rest/rastro/rastroMobile'
         )
-        response = requests.post(
+        response = await session.post(
             url, data=request_xml, headers=headers, timeout=3
-        ).text
+        )
+        response = await response.text()
     except Exception:
         if retries > 0:
-            return get(code, retries - 1)
+            return await get(code, retries - 1, session)
         return status.OFFLINE
     if len(str(response)) < 10:
         return status.OFFLINE

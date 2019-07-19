@@ -93,10 +93,9 @@ async def funcao(cursor1):
                 len_new_state = 1
             if len_old_state != len_new_state:
                 for user in elem['users']:
-                    logger_info.info(str(datetime.now()) + '\t' + '\t'
+                    logger_info.info(str(datetime.now()) + '\t'
                         + str(code) + ' \t' + str(user) + ' \t' + str(sent) + '\t'
-                        + ' ' + str(len_old_state) + ' '
-                        + str(len_new_state))
+                        + ' ' + str(len_old_state) + ' ' + str(len_new_state))
                     try:
                         message = (str(u'\U0001F4EE') + '<b>' + code + '</b>\n')
                         if elem[user] != code:

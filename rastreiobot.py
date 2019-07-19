@@ -405,7 +405,8 @@ def echo_all(message):
                 bot.send_message(user, message, parse_mode='HTML', reply_markup=markup_btn)
             else:
                 bot.send_message(user, message, parse_mode='HTML', reply_markup=markup_clean)
-            set_desc(str(code), str(user), desc)
+            if desc != code:
+                set_desc(str(code), str(user), desc)
         else:
             stat = add_package(str(code), str(user))
             if stat == 0:
